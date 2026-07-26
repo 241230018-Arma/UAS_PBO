@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox  # <-- FIX: Import messagebox agar dialog hapus berfungsi
+from tkinter import messagebox
 from datetime import datetime, timedelta
 from collections import Counter
 from ELibrary_Model import LibraryModel
@@ -19,6 +19,77 @@ class LibraryController:
         self.tampilkan_buku()
         self.tampilkan_anggota()
         self.tampilkan_peminjaman()
+        # Update combobox dan ID peminjaman setelah data dimuat
+        self.update_combo_data()
+
+    def update_combo_data(self):
+        """Update combobox anggota, buku, dan ID peminjaman berurutan"""
+        try:
+            # Update combobox anggota
+            data_anggota, _ = self.model.load_anggota()
+            if data_anggota:
+                list_id_anggota = [a[0] for a in data_anggota]
+                self.view.update_combo_anggota(list_id_anggota)
+            
+            # Update combobox buku
+            data_buku, _ = self.model.load_buku()
+            if data_buku:
+                list_id_buku = [b[0] for b in data_buku]
+                self.view.update_combo_buku(list_id_buku)
+            
+            # Set ID peminjaman berurutan
+            next_id = self.generate_next_id_pinjam()
+            self.view.set_id_pinjam_berurutan(next_id)
+        except Exception as e:
+            print(f"Error update combo data: {e}")
+
+    def generate_next_id_pinjam(self):
+        """Generate ID peminjaman berurutan (P001, P002, dst)"""
+        try:
+            data_pinjam, _ = self.model.load_peminjaman()
+            if data_pinjam:
+                # Ambil semua ID peminjaman yang ada
+                existing_ids = [p[0] for p in data_pinjam if p[0].startswith('P')]
+                if existing_ids:
+                    # Extract angka dari ID terakhir
+                    max_num = max([int(id.replace('P', '')) for id in existing_ids])
+                    next_num = max_num + 1
+                else:
+                    next_num = 1
+            else:
+                next_num = 1
+            
+            # Format ID dengan padding 3 digit (P001, P002, dst)
+            return f"P{next_num:03d}"
+        except Exception as e:
+            print(f"Error generate ID: {e}")
+            return "P001"
+
+    def get_nama_anggota(self, id_anggota):
+        """Ambil nama anggota berdasarkan ID untuk auto-fill"""
+        try:
+            data_anggota, _ = self.model.load_anggota()
+            if data_anggota:
+                for anggota in data_anggota:
+                    if anggota[0] == id_anggota:
+                        return anggota[1]  # Return nama
+            return None
+        except Exception as e:
+            print(f"Error get nama anggota: {e}")
+            return None
+
+    def get_judul_buku(self, id_buku):
+        """Ambil judul buku berdasarkan ID untuk auto-fill"""
+        try:
+            data_buku, _ = self.model.load_buku()
+            if data_buku:
+                for buku in data_buku:
+                    if buku[0] == id_buku:
+                        return buku[1]  # Return judul
+            return None
+        except Exception as e:
+            print(f"Error get judul buku: {e}")
+            return None
 
     def update_dashboard(self):
         try:
@@ -66,7 +137,10 @@ class LibraryController:
         hasil, error = self.model.tambah_buku(*data)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Data buku berhasil ditambahkan")
-            self.tampilkan_buku(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_buku()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox buku
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -79,7 +153,10 @@ class LibraryController:
         hasil, error = self.model.update_buku(data[1], data[2], data[3], data[4], data[5], self.id_buku_terpilih)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Data buku berhasil diperbarui")
-            self.tampilkan_buku(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_buku()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox buku
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -90,7 +167,10 @@ class LibraryController:
         hasil, error = self.model.hapus_buku(self.id_buku_terpilih)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Data buku berhasil dihapus")
-            self.tampilkan_buku(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_buku()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox buku
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -114,7 +194,10 @@ class LibraryController:
         hasil, error = self.model.tambah_anggota(*data)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Anggota berhasil ditambahkan")
-            self.tampilkan_anggota(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_anggota()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox anggota
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -125,7 +208,10 @@ class LibraryController:
         hasil, error = self.model.update_anggota(data[1], data[2], data[3], self.id_anggota_terpilih)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Data anggota diperbarui")
-            self.tampilkan_anggota(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_anggota()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox anggota
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -136,7 +222,10 @@ class LibraryController:
         hasil, error = self.model.hapus_anggota(self.id_anggota_terpilih)
         if not error:
             self.view.tampilkan_pesan("Berhasil", "Data anggota dihapus")
-            self.tampilkan_anggota(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_anggota()
+            self.update_dashboard()
+            self.update_combo_data()  # Update combobox anggota
+            self.view.bersihkan_form()
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -155,29 +244,39 @@ class LibraryController:
             self.view.ent_id_kembali.insert(0, data[0])
 
     def tambah_peminjaman(self):
+        # Ambil data dari form (ID peminjaman, ID anggota dari combobox, ID buku dari combobox, tanggal)
         data = self.view.get_input_pinjam()
         if not all(data):
             self.view.tampilkan_pesan("Error", "Semua field harus diisi", True); return
         
+        # Cek stok buku
         stok = self.model.cek_stok_buku(data[2])
         if stok is None or stok <= 0:
             self.view.tampilkan_pesan("Error", "Buku tidak ditemukan atau stok habis", True); return
         
+        # Cek anggota
         anggota, error = self.model.cari_anggota(data[1])
         if error or not anggota:
             self.view.tampilkan_pesan("Error", "Anggota tidak ditemukan", True); return
 
+        # Validasi tanggal
         try:
             tanggal = datetime.strptime(data[3], "%Y-%m-%d")
             batas = (tanggal + timedelta(days=7)).strftime("%Y-%m-%d")
         except:
             self.view.tampilkan_pesan("Error", "Format tanggal tidak valid", True); return
 
+        # Tambah peminjaman
         hasil, error = self.model.tambah_peminjaman(data[0], data[1], data[2], data[3], batas)
         if not error:
             self.model.kurangi_stok_buku(data[2])
             self.view.tampilkan_pesan("Berhasil", f"Peminjaman berhasil\nBatas kembali: {batas}")
-            self.tampilkan_semua_data(); self.update_dashboard(); self.view.bersihkan_form()
+            self.tampilkan_semua_data()
+            self.update_dashboard()
+            self.view.bersihkan_form()
+            # Set ID peminjaman baru setelah bersih form
+            next_id = self.generate_next_id_pinjam()
+            self.view.set_id_pinjam_berurutan(next_id)
         else:
             self.view.tampilkan_pesan("Error", error, True)
 
@@ -204,7 +303,9 @@ class LibraryController:
         self.model.pengembalian_buku(data[0], data[1], denda)
         self.model.tambah_stok_buku(pinjam[0][2])
         self.view.tampilkan_pesan("Berhasil", f"Pengembalian selesai\nDenda: Rp {denda:,}")
-        self.tampilkan_semua_data(); self.update_dashboard(); self.view.bersihkan_form()
+        self.tampilkan_semua_data()
+        self.update_dashboard()
+        self.view.bersihkan_form()
 
     def bersihkan_form(self):
         self.view.bersihkan_form()
